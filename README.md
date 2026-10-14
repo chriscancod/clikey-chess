@@ -29,16 +29,25 @@ host and configure a single-page-app fallback to `/index.html`.
 
 ## Website ads
 
-Web ads use **Google AdSense** (AdMob is for native mobile apps). First add and
-verify `clikey.store` in the AdSense account and wait for site approval. Create
-a display ad unit, then copy `.env.example` to `.env` and set
+Web ads use **Google AdSense** (AdMob is for native mobile apps). In AdSense,
+add `clikey.store` and complete the ownership verification method Google gives
+you. For code verification, configure the publisher ID below and deploy it to
+the domain; the app loads the AdSense script on `clikey.store` when a valid
+publisher ID is present, even before an ad slot is set. Wait until AdSense marks
+the site ready, create a display ad unit, then set
+`VITE_ADSENSE_SLOT_ID` (the numeric ad-unit ID) and redeploy. Configure both
 `VITE_ADSENSE_CLIENT_ID` (`ca-pub-` plus the account's 16 digits) and
-`VITE_ADSENSE_SLOT_ID` (the ad unit ID). The ad component only loads Google's
-script on `clikey.store`, only when both values are present, and labels the
-placement as sponsored. Local preview stays ad-free. Publish the account's
-exact `ads.txt` seller line at `/ads.txt` after AdSense provides it; do not use
-a guessed publisher ID. Ad delivery and consent requirements depend on the
-approved account/site configuration.
+`VITE_ADSENSE_SLOT_ID` in your host's build environment; do not commit a real
+`.env` file. The placement stays inactive until both IDs exist and only loads on
+`clikey.store` or its subdomains. Local preview stays ad-free. Publish the
+exact `ads.txt` seller line AdSense provides at `/ads.txt`; never guess the
+publisher ID. Ad delivery and consent requirements depend on the approved
+account/site configuration.
+
+For a local production build, create `.env` from `.env.example`; for hosted
+builds, set the two variables in the host's environment-variable settings and
+trigger a fresh build. Vite embeds `VITE_` values in client files, so use only
+the public AdSense publisher and ad-unit IDs there, never secrets.
 
 ## Vey
 
