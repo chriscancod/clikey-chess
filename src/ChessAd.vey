@@ -9,7 +9,9 @@ const hasAdUnit = hasPublisher and /^\d+$/.test(slot)
 export default fn ChessAd() {
   const ad = useRef<HTMLElement | null>(null)
   useEffect(() => {
-    if not hasPublisher or not window.location.hostname.endsWith('clikey.store') { return }
+    const hostname = window.location.hostname
+    const isCliKeyDomain = hostname == 'clikey.store' or hostname.endsWith('.clikey.store')
+    if not hasPublisher or not isCliKeyDomain { return }
     const scriptId = 'clikey-adsense-sdk'
     let script = document.getElementById(scriptId) as HTMLScriptElement | null
     if not script {

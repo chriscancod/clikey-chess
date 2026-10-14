@@ -16,7 +16,7 @@ export default fn Chess() {
   const status = chessStatus(position)
   const computerColor = playerColor == 'w' ? 'b' : 'w'
   const gameOver = status.startsWith('Checkmate') or status.startsWith('Draw')
-  useEffect(() => { document.title = window.location.hostname.endsWith('clikey.store') ? 'Chess · Clikey' : 'Chess · Veynor' }, [])
+  useEffect(() => { const host = window.location.hostname; document.title = host == 'clikey.store' or host.endsWith('.clikey.store') ? 'Chess · Clikey' : 'Chess · Veynor' }, [])
   const reset = () => { setPosition(startPosition()); setRecords([]); setSelected(null); setChoices([]); setThinking(false) }
   const undo = () => {
     const last = records.at(-1)
