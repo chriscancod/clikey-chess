@@ -11,8 +11,10 @@ export default fn Chess() {
   const [flipped, setFlipped] = useState(false)
   const [promotion, setPromotion] = useState('Q')
   const [mode, setMode] = useState<'local' | 'computer'>('local')
+  const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w')
   const [thinking, setThinking] = useState(false)
   const status = chessStatus(position)
+  const computerColor = playerColor == 'w' ? 'b' : 'w'
   const gameOver = status.startsWith('Checkmate') or status.startsWith('Draw')
   useEffect(() => { document.title = window.location.hostname.endsWith('clikey.store') ? 'Chess · Clikey' : 'Chess · Veynor' }, [])
   const reset = () => { setPosition(startPosition()); setRecords([]); setSelected(null); setChoices([]); setThinking(false) }
@@ -22,7 +24,7 @@ export default fn Chess() {
     setPosition(last.before); setRecords(records.slice(0, -1)); setSelected(null); setChoices([])
   }
   const clickSquare = (square: number) => {
-    if gameOver or mode == 'computer' and position.turn == 'b' or thinking { return }
+    if gameOver or mode == 'computer' and position.turn != playerColor or thinking { return }
     const move = selected == null ? null : choices.find(choice => choice.to == square)
     if move {
       const selectedMove = move.promotion ? { ...move, promotion } : move
@@ -35,10 +37,10 @@ export default fn Chess() {
     } else { setSelected(null); setChoices([]) }
   }
   useEffect(() => {
-    if mode != 'computer' or position.turn != 'b' or gameOver { setThinking(false); return }
+    if mode != 'computer' or position.turn != computerColor or gameOver { setThinking(false); return }
     setThinking(true)
     const timer = setTimeout(() => {
-      const move = chooseComputerMove(position, 2)
+      const move = chooseComputerMove(position, 3)
       if move {
         const record = { move, san: sanForMove(position, move), before: position }
         setPosition(applyMove(position, move)); setRecords(previous => [...previous, record])
@@ -46,7 +48,7 @@ export default fn Chess() {
       setThinking(false)
     }, 180)
     return () => clearTimeout(timer)
-  }, [mode, position, gameOver])
+  }, [mode, position, gameOver, computerColor])
   const orderedSquares = [...Array(64).keys()]
   if flipped { orderedSquares.reverse() }
   const latest = records.at(-1)?.move
@@ -69,12 +71,13 @@ export default fn Chess() {
       </div>
       <aside className="chess-side">
         <div className="chess-mode-tabs" aria-label="Game mode"><button className={mode == 'local' ? 'selected' : ''} aria-pressed={mode == 'local'} onClick={() => { setMode('local'); setThinking(false) }}>Two players</button><button className={mode == 'computer' ? 'selected' : ''} aria-pressed={mode == 'computer'} onClick={() => { setMode('computer'); setThinking(false) }}>Vs computer</button></div>
+        {mode == 'computer' ? <div className="chess-color-picker" aria-label="Choose your color"><span>PLAY AS</span><div><button className={playerColor == 'w' ? 'selected' : ''} aria-pressed={playerColor == 'w'} onClick={() => { setPlayerColor('w'); setFlipped(false); reset() }}><b>♔</b> White</button><button className={playerColor == 'b' ? 'selected' : ''} aria-pressed={playerColor == 'b'} onClick={() => { setPlayerColor('b'); setFlipped(true); reset() }}><b>♚</b> Black</button></div></div> : null}
         <div className={`chess-status-card ${status.includes('Check') or status.startsWith('Checkmate') ? 'check' : ''}`}><span className="chess-status-dot" /><div><small>GAME STATUS</small><strong role="status" aria-live="polite">{thinking ? 'Computer thinking…' : status}</strong></div></div>
         <div className="chess-controls"><button className="chess-new-game" onClick={reset}>New game <span>↗</span></button><button className="chess-undo" disabled={!records.length} onClick={undo}>↶ <span>Undo move</span></button><button className="chess-undo" onClick={() => setFlipped(not flipped)}>⇅ <span>Flip board</span></button></div>
         <div className="chess-promotion"><small>PROMOTION PIECE</small><div>{['Q','R','B','N'].map(piece => <button key={piece} className={promotion == piece ? 'chosen' : ''} aria-label={`Promote to ${piece == 'Q' ? 'queen' : piece == 'R' ? 'rook' : piece == 'B' ? 'bishop' : 'knight'}`} aria-pressed={promotion == piece} onClick={() => setPromotion(piece)}>{promotionGlyph[piece]}</button>)}</div></div>
         <div className="chess-moves"><div className="chess-section-title"><strong>Moves</strong><span>{records.length} ply</span></div>{records.length ? <ol>{records.map((record, i) => <li key={i} className={i == records.length - 1 ? 'current' : ''}><span>{Math.floor(i / 2) + 1}{i % 2 == 0 ? '.' : '…'}</span><b>{record.san}</b></li>)}</ol> : <p className="chess-empty">Your opening move is waiting.</p>}</div>
         <ChessAd />
-        <p className="chess-note">{mode == 'local' ? 'A quiet game, face to face. Pass the device after each move.' : 'Play White against a private on-device chess opponent. Your game stays here.'}</p>
+        <p className="chess-note">{mode == 'local' ? 'A quiet game, face to face. Pass the device after each move.' : `You play ${playerColor == 'w' ? 'White' : 'Black'} against a stronger private on-device opponent. Your game stays here.`}</p>
       </aside>
     </section>
     <footer className="chess-footer"><span>CLIKEY · A GAME FOR TWO</span><span>Take your time.</span></footer>

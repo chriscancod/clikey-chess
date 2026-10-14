@@ -76,3 +76,14 @@ test('the on-device opponent finds a forced mate without sending the position ov
   assert.ok(move)
   assert.equal(sanForMove(position, move), 'Qh4#')
 })
+
+test('the deeper opponent searches a legal reply for either side', () => {
+  let position = startPosition()
+  const whiteMove = chooseComputerMove(position, 3)
+  assert.ok(whiteMove)
+  assert.ok(legalMoves(position).some(move => move.from == whiteMove.from and move.to == whiteMove.to))
+  position = applyMove(position, whiteMove)
+  const blackMove = chooseComputerMove(position, 3)
+  assert.ok(blackMove)
+  assert.ok(legalMoves(position).some(move => move.from == blackMove.from and move.to == blackMove.to))
+})

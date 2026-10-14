@@ -44,6 +44,12 @@ button { border: 0; font: inherit; cursor: pointer; -webkit-tap-highlight-color:
 .chess-mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 12px; padding: 3px; border: 1px solid var(--chess-line); border-radius: 8px; background: rgba(227,224,214,.6); }
 .chess-mode-tabs button { min-height: 32px; border-radius: 6px; color: #68746b !important; font-size: 10px; font-weight: 600; }
 .chess-mode-tabs button.selected { background: #faf8f1; color: var(--chess-ink) !important; box-shadow: 0 1px 3px rgba(31,42,34,.13); }
+.chess-color-picker { margin: -3px 0 12px; padding: 11px 12px; border: 1px solid var(--chess-line); border-radius: 9px; background: rgba(255,255,255,.36); }
+.chess-color-picker > span { display: block; margin-bottom: 8px; color: var(--chess-muted); font-size: 8px; font-weight: 750; letter-spacing: .16em; }
+.chess-color-picker > div { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.chess-color-picker button { min-height: 36px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--chess-line); border-radius: 7px; background: rgba(255,255,255,.44); color: #59665c !important; font-size: 10px; font-weight: 650; }
+.chess-color-picker button.selected { border-color: #77917d; background: #e4e9df; color: var(--chess-ink) !important; }
+.chess-color-picker button b { font-size: 17px; }
 .chess-status-card { min-height: 67px; display: flex; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid var(--chess-line); border-radius: 10px; background: rgba(255,255,255,.48); }
 .chess-status-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: #76a281; box-shadow: 0 0 0 4px rgba(118,162,129,.13); }
 .chess-status-card.check .chess-status-dot { background: #c87554; box-shadow: 0 0 0 4px rgba(200,117,84,.13); }

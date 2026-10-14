@@ -164,14 +164,27 @@ fn positionScore(position: ChessPosition): number {
     if not piece { continue }
     const side = piece[0] == 'w' ? 1 : -1, type = typeOf(piece), row = Math.floor(square / 8), col = square % 8
     const center = 7 - (Math.abs(col * 2 - 7) + Math.abs(row * 2 - 7)) / 2
-    const activity = type == 'N' or type == 'B' ? center * 3 : type == 'P' ? (piece[0] == 'w' ? 6 - row : row - 1) * 5 : 0
+    const homeRow = piece[0] == 'w' ? 7 : 0
+    const activity = type == 'N' or type == 'B' ? center * 3 + (row != homeRow ? 18 : 0) : type == 'P' ? (piece[0] == 'w' ? 6 - row : row - 1) * 5 : 0
     score += side * ((pieceScores[type] ?? 0) + activity)
   }
   return score
 }
 
+fn orderedMoves(position: ChessPosition): ChessMove[] {
+  return legalMoves(position).map(move => {
+    const attacker = typeOf(position.board[move.from]), captureSquare = move.enPassant ? move.to + (position.turn == 'w' ? 8 : -8) : move.to
+    const victim = typeOf(position.board[captureSquare])
+    let priority = victim ? (pieceScores[victim] ?? 0) * 10 - (pieceScores[attacker] ?? 0) : 0
+    if move.promotion { priority += (pieceScores[move.promotion] ?? 0) + 800 }
+    const next = applyMove(position, move)
+    if kingInCheck(next.board, next.turn) { priority += 50 }
+    return { move, priority }
+  }).sort((a, b) => b.priority - a.priority).map(item => item.move)
+}
+
 fn searchPosition(position: ChessPosition, depth: number, alphaStart: number, betaStart: number): number {
-  const moves = legalMoves(position)
+  const moves = orderedMoves(position)
   if moves.length == 0 { return kingInCheck(position.board, position.turn) ? position.turn == 'w' ? -100000 - depth : 100000 + depth : 0 }
   if depth <= 0 or position.halfmove >= 100 { return positionScore(position) }
   let alpha = alphaStart, beta = betaStart
@@ -194,7 +207,7 @@ fn searchPosition(position: ChessPosition, depth: number, alphaStart: number, be
 }
 
 export fn chooseComputerMove(position: ChessPosition, depth = 2): ChessMove | null {
-  const moves = legalMoves(position)
+  const moves = orderedMoves(position)
   if moves.length == 0 { return null }
   const searchDepth = Math.max(1, Math.min(3, Math.floor(depth)))
   let choice = moves[0], best = position.turn == 'w' ? -Infinity : Infinity
