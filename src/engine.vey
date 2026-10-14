@@ -1,0 +1,206 @@
+export type ChessColor = 'w' | 'b'
+export type ChessPiece = string | null
+export type ChessBoard = ChessPiece[]
+export interface ChessMove { from: number; to: number; promotion?: string; enPassant?: boolean; castle?: string }
+export interface ChessPosition { board: ChessBoard; turn: ChessColor; castling: string; enPassant: number | null; halfmove: number; fullmove: number }
+export interface ChessRecord { move: ChessMove; san: string; before: ChessPosition }
+
+const files = 'abcdefgh'
+const glyphs: Record<string, string> = { wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙', bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟' }
+export const pieceGlyph = (piece: ChessPiece) => piece ? glyphs[piece] ?? '' : ''
+export const squareName = (square: number) => `${files[square % 8]}${8 - Math.floor(square / 8)}`
+export const startPosition = (): ChessPosition => ({
+  board: ['bR','bN','bB','bQ','bK','bB','bN','bR', ...Array(8).fill('bP'), ...Array(32).fill(null), ...Array(8).fill('wP'), 'wR','wN','wB','wQ','wK','wB','wN','wR'],
+  turn: 'w', castling: 'KQkq', enPassant: null, halfmove: 0, fullmove: 1,
+})
+const inside = (row: number, col: number) => row >= 0 and row < 8 and col >= 0 and col < 8
+const colorOf = (piece: ChessPiece): ChessColor | null => piece ? piece[0] as ChessColor : null
+const typeOf = (piece: ChessPiece) => piece?.[1] ?? ''
+const index = (row: number, col: number) => row * 8 + col
+const clonePosition = (position: ChessPosition): ChessPosition => ({ ...position, board: [...position.board] })
+
+export fn isSquareAttacked(board: ChessBoard, target: number, by: ChessColor): boolean {
+  const row = Math.floor(target / 8), col = target % 8
+  const pawnRow = row + (by == 'w' ? 1 : -1)
+  for dc in [-1, 1] { if inside(pawnRow, col + dc) and board[index(pawnRow, col + dc)] == `${by}P` { return true } }
+  for [dr, dc] in [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]] {
+    if inside(row + dr, col + dc) and board[index(row + dr, col + dc)] == `${by}N` { return true }
+  }
+  for dr in [-1, 0, 1] { for dc in [-1, 0, 1] {
+    if (dr or dc) and inside(row + dr, col + dc) and board[index(row + dr, col + dc)] == `${by}K` { return true }
+  } }
+  for [dr, dc] in [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]] {
+    let r = row + dr, c = col + dc, distance = 1
+    while inside(r, c) {
+      const piece = board[index(r, c)]
+      if piece {
+        if colorOf(piece) == by {
+          const type = typeOf(piece)
+          if type == 'Q' or (distance == 1 and type == 'K') or (dr == 0 or dc == 0) and type == 'R' or dr != 0 and dc != 0 and type == 'B' { return true }
+        }
+        break
+      }
+      r += dr; c += dc; distance += 1
+    }
+  }
+  return false
+}
+
+export fn kingInCheck(board: ChessBoard, color: ChessColor): boolean {
+  const king = board.findIndex(piece => piece == `${color}K`)
+  return king < 0 or isSquareAttacked(board, king, color == 'w' ? 'b' : 'w')
+}
+
+fn pseudoMoves(position: ChessPosition, sourceSquare: number): ChessMove[] {
+  const { board, turn } = position
+  const piece = board[sourceSquare]
+  if not piece or colorOf(piece) != turn { return [] }
+  const row = Math.floor(sourceSquare / 8), col = sourceSquare % 8, type = typeOf(piece)
+  const moves: ChessMove[] = []
+  const add = (r: number, c: number, flags: Partial<ChessMove> = {}) => {
+    if inside(r, c) {
+      const to = index(r, c), occupant = board[to]
+      if not occupant or colorOf(occupant) != turn { moves.push({ from: sourceSquare, to, ...flags }) }
+    }
+  }
+  if type == 'P' {
+    const direction = turn == 'w' ? -1 : 1, start = turn == 'w' ? 6 : 1, promotionRow = turn == 'w' ? 0 : 7
+    const one = row + direction
+    if inside(one, col) and not board[index(one, col)] {
+      moves.push({ from: sourceSquare, to: index(one, col), promotion: one == promotionRow ? 'Q' : undefined })
+      const two = row + direction * 2
+      if row == start and not board[index(two, col)] { moves.push({ from: sourceSquare, to: index(two, col) }) }
+    }
+    for dc in [-1, 1] {
+      const r = row + direction, c = col + dc
+      if not inside(r, c) { continue }
+      const to = index(r, c), target = board[to]
+      if target and colorOf(target) != turn { moves.push({ from: sourceSquare, to, promotion: r == promotionRow ? 'Q' : undefined }) }
+      elif position.enPassant == to { moves.push({ from: sourceSquare, to, enPassant: true }) }
+    }
+  } elif type == 'N' {
+    for [dr, dc] in [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]] { add(row + dr, col + dc) }
+  } elif type == 'K' {
+    for dr in [-1, 0, 1] { for dc in [-1, 0, 1] { if dr or dc { add(row + dr, col + dc) } } }
+    const enemy = turn == 'w' ? 'b' : 'w'
+    if turn == 'w' and sourceSquare == 60 and not isSquareAttacked(board, 60, enemy) {
+      if position.castling.includes('K') and not board[61] and not board[62] and board[63] == 'wR' and not isSquareAttacked(board, 61, enemy) and not isSquareAttacked(board, 62, enemy) { moves.push({ from: sourceSquare, to: 62, castle: 'K' }) }
+      if position.castling.includes('Q') and not board[59] and not board[58] and not board[57] and board[56] == 'wR' and not isSquareAttacked(board, 59, enemy) and not isSquareAttacked(board, 58, enemy) { moves.push({ from: sourceSquare, to: 58, castle: 'Q' }) }
+    } elif turn == 'b' and sourceSquare == 4 and not isSquareAttacked(board, 4, enemy) {
+      if position.castling.includes('k') and not board[5] and not board[6] and board[7] == 'bR' and not isSquareAttacked(board, 5, enemy) and not isSquareAttacked(board, 6, enemy) { moves.push({ from: sourceSquare, to: 6, castle: 'k' }) }
+      if position.castling.includes('q') and not board[3] and not board[2] and not board[1] and board[0] == 'bR' and not isSquareAttacked(board, 3, enemy) and not isSquareAttacked(board, 2, enemy) { moves.push({ from: sourceSquare, to: 2, castle: 'q' }) }
+    }
+  } else {
+    const directions = type == 'B' ? [[-1,-1],[-1,1],[1,-1],[1,1]] : type == 'R' ? [[-1,0],[1,0],[0,-1],[0,1]] : [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]
+    for [dr, dc] in directions {
+      let r = row + dr, c = col + dc
+      while inside(r, c) {
+        const to = index(r, c), occupant = board[to]
+        if not occupant { moves.push({ from: sourceSquare, to }) }
+        elif colorOf(occupant) != turn { moves.push({ from: sourceSquare, to }); break }
+        else { break }
+        r += dr; c += dc
+      }
+    }
+  }
+  return moves
+}
+
+export fn applyMove(position: ChessPosition, move: ChessMove): ChessPosition {
+  const next = clonePosition(position), board = next.board, piece = board[move.from]!, captured = board[move.to]
+  board[move.from] = null
+  if move.enPassant { board[move.to + (position.turn == 'w' ? 8 : -8)] = null }
+  board[move.to] = move.promotion ? `${position.turn}${move.promotion}` : piece
+  if move.castle == 'K' { board[63] = null; board[61] = 'wR' }
+  elif move.castle == 'Q' { board[56] = null; board[59] = 'wR' }
+  elif move.castle == 'k' { board[7] = null; board[5] = 'bR' }
+  elif move.castle == 'q' { board[0] = null; board[3] = 'bR' }
+  if piece == 'wK' { next.castling = next.castling.replaceAll('K', '').replaceAll('Q', '') }
+  if piece == 'bK' { next.castling = next.castling.replaceAll('k', '').replaceAll('q', '') }
+  const rights: Record<number, string> = { 63: 'K', 56: 'Q', 7: 'k', 0: 'q' }
+  if typeOf(piece) == 'R' and rights[move.from] { next.castling = next.castling.replaceAll(rights[move.from], '') }
+  if typeOf(captured) == 'R' and rights[move.to] { next.castling = next.castling.replaceAll(rights[move.to], '') }
+  next.enPassant = typeOf(piece) == 'P' and Math.abs(move.to - move.from) == 16 ? (move.from + move.to) / 2 : null
+  next.halfmove = typeOf(piece) == 'P' or captured or move.enPassant ? 0 : position.halfmove + 1
+  if position.turn == 'b' { next.fullmove += 1 }
+  next.turn = position.turn == 'w' ? 'b' : 'w'
+  return next
+}
+
+export fn legalMoves(position: ChessPosition, from?: number): ChessMove[] {
+  if typeof from == 'number' { return pseudoMoves(position, from).filter(move => not kingInCheck(applyMove(position, move).board, position.turn)) }
+  const candidates: ChessMove[] = []
+  for square in 0..63 {
+    const piece = position.board[square]
+    if piece and colorOf(piece) == position.turn { candidates.push(...pseudoMoves(position, square)) }
+  }
+  return candidates.filter(move => not kingInCheck(applyMove(position, move).board, position.turn))
+}
+
+export fn chessStatus(position: ChessPosition): string {
+  const checked = kingInCheck(position.board, position.turn), moves = legalMoves(position)
+  if moves.length == 0 { return checked ? `Checkmate · ${position.turn == 'w' ? 'Black' : 'White'} wins` : 'Draw · stalemate' }
+  if position.halfmove >= 100 { return 'Draw · fifty-move rule' }
+  const pieces = position.board.filter(Boolean)
+  if pieces.length == 2 or pieces.length == 3 and pieces.some(piece => typeOf(piece) == 'B' or typeOf(piece) == 'N') { return 'Draw · insufficient material' }
+  return `${position.turn == 'w' ? 'White' : 'Black'} to move${checked ? ' · Check' : ''}`
+}
+
+export fn sanForMove(position: ChessPosition, move: ChessMove): string {
+  if move.castle { return move.castle.toLowerCase() == 'k' ? 'O-O' : 'O-O-O' }
+  const piece = position.board[move.from], capture = position.board[move.to] or move.enPassant
+  const prefix = typeOf(piece) == 'P' ? (capture ? files[move.from % 8] : '') : typeOf(piece)
+  const next = applyMove(position, move), check = kingInCheck(next.board, next.turn)
+  const replies = legalMoves(next)
+  const suffix = replies.length == 0 and check ? '#' : check ? '+' : ''
+  return `${prefix}${capture ? 'x' : ''}${squareName(move.to)}${move.promotion ? `=${move.promotion}` : ''}${suffix}`
+}
+
+const pieceScores: Record<string, number> = { P: 100, N: 320, B: 335, R: 500, Q: 900, K: 0 }
+fn positionScore(position: ChessPosition): number {
+  let score = 0
+  for square in 0..63 {
+    const piece = position.board[square]
+    if not piece { continue }
+    const side = piece[0] == 'w' ? 1 : -1, type = typeOf(piece), row = Math.floor(square / 8), col = square % 8
+    const center = 7 - (Math.abs(col * 2 - 7) + Math.abs(row * 2 - 7)) / 2
+    const activity = type == 'N' or type == 'B' ? center * 3 : type == 'P' ? (piece[0] == 'w' ? 6 - row : row - 1) * 5 : 0
+    score += side * ((pieceScores[type] ?? 0) + activity)
+  }
+  return score
+}
+
+fn searchPosition(position: ChessPosition, depth: number, alphaStart: number, betaStart: number): number {
+  const moves = legalMoves(position)
+  if moves.length == 0 { return kingInCheck(position.board, position.turn) ? position.turn == 'w' ? -100000 - depth : 100000 + depth : 0 }
+  if depth <= 0 or position.halfmove >= 100 { return positionScore(position) }
+  let alpha = alphaStart, beta = betaStart
+  if position.turn == 'w' {
+    let best = -Infinity
+    for move in moves {
+      best = Math.max(best, searchPosition(applyMove(position, move), depth - 1, alpha, beta))
+      alpha = Math.max(alpha, best)
+      if beta <= alpha { break }
+    }
+    return best
+  }
+  let best = Infinity
+  for move in moves {
+    best = Math.min(best, searchPosition(applyMove(position, move), depth - 1, alpha, beta))
+    beta = Math.min(beta, best)
+    if beta <= alpha { break }
+  }
+  return best
+}
+
+export fn chooseComputerMove(position: ChessPosition, depth = 2): ChessMove | null {
+  const moves = legalMoves(position)
+  if moves.length == 0 { return null }
+  const searchDepth = Math.max(1, Math.min(3, Math.floor(depth)))
+  let choice = moves[0], best = position.turn == 'w' ? -Infinity : Infinity
+  for move in moves {
+    const score = searchPosition(applyMove(position, move), searchDepth - 1, -Infinity, Infinity)
+    if position.turn == 'w' and score > best or position.turn == 'b' and score < best { best = score; choice = move }
+  }
+  return choice
+}

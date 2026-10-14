@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { applyMove, chessStatus, chooseComputerMove, legalMoves, sanForMove, startPosition, type ChessPosition } from '../src/engine.vey'
+
+const play = (position: ChessPosition, from: number, to: number): ChessPosition => {
+  const move = legalMoves(position, from).find(candidate => candidate.to == to)
+  assert.ok(move, `expected legal move ${from} → ${to}`)
+  return applyMove(position, move)
+}
+
+test('Chess starts with 20 legal moves and enforces alternating legal play', () => {
+  const start = startPosition()
+  assert.equal(legalMoves(start).length, 20)
+  const after = play(start, 52, 36)
+  assert.equal(after.turn, 'b')
+  assert.equal(after.enPassant, 44)
+  assert.equal(legalMoves(after).length, 20)
+  assert.equal(legalMoves(after, 52).length, 0)
+})
+
+test('Chess supports castling after the king path is clear', () => {
+  let position = startPosition()
+  position = play(position, 52, 36) # e4
+  position = play(position, 12, 28) # e5
+  position = play(position, 62, 45) # Nf3
+  position = play(position, 1, 18) # Nc6
+  position = play(position, 61, 34) # Bc4
+  position = play(position, 6, 21) # Nf6
+  const castle = legalMoves(position, 60).find(move => move.castle == 'K')
+  assert.ok(castle)
+  position = applyMove(position, castle)
+  assert.equal(position.board[62], 'wK')
+  assert.equal(position.board[61], 'wR')
+  assert.equal(position.castling.includes('K') or position.castling.includes('Q'), false)
+})
+
+test('Chess en passant removes the captured pawn and promotion uses the chosen piece', () => {
+  let position = startPosition()
+  position = play(position, 52, 36)
+  position = play(position, 8, 16)
+  position = play(position, 36, 28)
+  position = play(position, 11, 27)
+  const enPassant = legalMoves(position, 28).find(move => move.to == 19)
+  assert.equal(enPassant?.enPassant, true)
+  position = applyMove(position, enPassant!)
+  assert.equal(position.board[19], 'wP')
+  assert.equal(position.board[27], null)
+  const board = Array(64).fill(null)
+  board[60] = 'wK'; board[4] = 'bK'; board[8] = 'wP'
+  const endgame: ChessPosition = { board, turn: 'w', castling: '', enPassant: null, halfmove: 0, fullmove: 1 }
+  const promote = legalMoves(endgame, 8).find(move => move.to == 0)
+  assert.equal(promote?.promotion, 'Q')
+  assert.equal(applyMove(endgame, { ...promote!, promotion: 'N' }).board[0], 'wN')
+})
+
+test('Chess detects checkmate and disallows moves that expose your king', () => {
+  let position = startPosition()
+  position = play(position, 53, 45) # f3
+  position = play(position, 12, 28) # e5
+  position = play(position, 54, 38) # g4
+  const queen = legalMoves(position, 3).find(move => move.to == 39)!
+  position = applyMove(position, queen)
+  assert.equal(chessStatus(position), 'Checkmate · Black wins')
+  const board = Array(64).fill(null)
+  board[60] = 'wK'; board[52] = 'wR'; board[4] = 'bR'; board[0] = 'bK'
+  const pinned: ChessPosition = { board, turn: 'w', castling: '', enPassant: null, halfmove: 0, fullmove: 1 }
+  assert.equal(legalMoves(pinned, 52).some(move => move.to == 51), false)
+})
+
+test('the on-device opponent finds a forced mate without sending the position over the network', () => {
+  let position = startPosition()
+  position = play(position, 53, 45) # f3
+  position = play(position, 12, 28) # e5
+  position = play(position, 54, 38) # g4
+  const move = chooseComputerMove(position, 2)
+  assert.ok(move)
+  assert.equal(sanForMove(position, move), 'Qh4#')
+})

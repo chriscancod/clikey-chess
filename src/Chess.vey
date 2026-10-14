@@ -1,0 +1,82 @@
+import { useEffect, useState } from 'react'
+import { applyMove, chessStatus, chooseComputerMove, legalMoves, pieceGlyph, sanForMove, squareName, startPosition, type ChessMove, type ChessPosition, type ChessRecord } from './engine'
+import ChessAd from './ChessAd'
+
+const promotionGlyph: Record<string, string> = { Q: '♕', R: '♖', B: '♗', N: '♘' }
+export default fn Chess() {
+  const [position, setPosition] = useState<ChessPosition>(startPosition())
+  const [records, setRecords] = useState<ChessRecord[]>([])
+  const [selected, setSelected] = useState<number | null>(null)
+  const [choices, setChoices] = useState<ChessMove[]>([])
+  const [flipped, setFlipped] = useState(false)
+  const [promotion, setPromotion] = useState('Q')
+  const [mode, setMode] = useState<'local' | 'computer'>('local')
+  const [thinking, setThinking] = useState(false)
+  const status = chessStatus(position)
+  const gameOver = status.startsWith('Checkmate') or status.startsWith('Draw')
+  useEffect(() => { document.title = window.location.hostname.endsWith('clikey.store') ? 'Chess · Clikey' : 'Chess · Veynor' }, [])
+  const reset = () => { setPosition(startPosition()); setRecords([]); setSelected(null); setChoices([]); setThinking(false) }
+  const undo = () => {
+    const last = records.at(-1)
+    if not last { return }
+    setPosition(last.before); setRecords(records.slice(0, -1)); setSelected(null); setChoices([])
+  }
+  const clickSquare = (square: number) => {
+    if gameOver or mode == 'computer' and position.turn == 'b' or thinking { return }
+    const move = selected == null ? null : choices.find(choice => choice.to == square)
+    if move {
+      const selectedMove = move.promotion ? { ...move, promotion } : move
+      const record = { move: selectedMove, san: sanForMove(position, selectedMove), before: position }
+      setPosition(applyMove(position, selectedMove)); setRecords([...records, record]); setSelected(null); setChoices([])
+      return
+    }
+    if position.board[square]?.startsWith(position.turn) {
+      setSelected(square); setChoices(legalMoves(position, square))
+    } else { setSelected(null); setChoices([]) }
+  }
+  useEffect(() => {
+    if mode != 'computer' or position.turn != 'b' or gameOver { setThinking(false); return }
+    setThinking(true)
+    const timer = setTimeout(() => {
+      const move = chooseComputerMove(position, 2)
+      if move {
+        const record = { move, san: sanForMove(position, move), before: position }
+        setPosition(applyMove(position, move)); setRecords(previous => [...previous, record])
+      }
+      setThinking(false)
+    }, 180)
+    return () => clearTimeout(timer)
+  }, [mode, position, gameOver])
+  const orderedSquares = [...Array(64).keys()]
+  if flipped { orderedSquares.reverse() }
+  const latest = records.at(-1)?.move
+  return <main className="chess-page">
+    <header className="chess-topbar"><a className="chess-wordmark" href="/" aria-label="Clikey Chess home"><span>♞</span> clikey<span className="chess-wordmark-dot">.</span></a><span className="chess-top-label">CHESS CLUB</span><span className="chess-top-label chess-local">LOCAL · 2 PLAYERS</span></header>
+    <section className="chess-layout">
+      <div className="chess-main">
+        <div className="chess-heading"><div><span className="chess-kicker">THE CLASSIC, MADE CLEAR</span><h1>Chess</h1></div><button className="chess-icon-button" aria-label="Flip board" title="Flip board" onClick={() => setFlipped(not flipped)}>⇅</button></div>
+        <div className="chess-player chess-player-top"><span className={`chess-player-piece ${position.turn == (flipped ? 'w' : 'b') ? 'active' : ''}`}>{flipped ? '♔' : '♚'}</span><span><strong>{flipped ? 'White' : 'Black'}</strong><small>{position.turn == (flipped ? 'w' : 'b') ? 'To move' : 'Ready'}</small></span></div>
+        <div className="chess-board-wrap"><div className="chess-coords chess-coords-files">{(flipped ? 'hgfedcba' : 'abcdefgh').split('').map(file => <span key={file}>{file}</span>)}</div><div className="chess-board" role="grid" aria-label="Chess board">
+          {orderedSquares.map(square => {
+            const row = Math.floor(square / 8), col = square % 8, piece = position.board[square]
+            const dark = (row + col) % 2 == 1, isSelected = selected == square, possible = choices.find(choice => choice.to == square), lastSquare = latest and (latest.from == square or latest.to == square)
+            return <button key={square} role="gridcell" aria-label={`${squareName(square)}${piece ? ` ${piece[0] == 'w' ? 'White' : 'Black'} ${piece[1]}` : ''}${possible ? ' legal move' : ''}`} aria-selected={isSelected} className={`chess-square ${dark ? 'dark' : 'light'} ${isSelected ? 'selected' : ''} ${possible ? position.board[square] ? 'capture' : 'legal' : ''} ${lastSquare ? 'last-move' : ''}`} onClick={() => clickSquare(square)}>
+              {piece ? <span className={`chess-piece ${piece[0] == 'w' ? 'white' : 'black'}`}>{pieceGlyph(piece)}</span> : null}{possible and not piece ? <i className="chess-legal-dot" /> : null}
+            </button>
+          })}
+        </div><div className="chess-coords chess-coords-ranks">{(flipped ? '12345678' : '87654321').split('').map(rank => <span key={rank}>{rank}</span>)}</div></div>
+        <div className="chess-player chess-player-bottom"><span className={`chess-player-piece ${position.turn == (flipped ? 'b' : 'w') ? 'active' : ''}`}>{flipped ? '♚' : '♔'}</span><span><strong>{flipped ? 'Black' : 'White'}</strong><small>{position.turn == (flipped ? 'b' : 'w') ? 'To move' : 'Ready'}</small></span></div>
+      </div>
+      <aside className="chess-side">
+        <div className="chess-mode-tabs" aria-label="Game mode"><button className={mode == 'local' ? 'selected' : ''} aria-pressed={mode == 'local'} onClick={() => { setMode('local'); setThinking(false) }}>Two players</button><button className={mode == 'computer' ? 'selected' : ''} aria-pressed={mode == 'computer'} onClick={() => { setMode('computer'); setThinking(false) }}>Vs computer</button></div>
+        <div className={`chess-status-card ${status.includes('Check') or status.startsWith('Checkmate') ? 'check' : ''}`}><span className="chess-status-dot" /><div><small>GAME STATUS</small><strong role="status" aria-live="polite">{thinking ? 'Computer thinking…' : status}</strong></div></div>
+        <div className="chess-controls"><button className="chess-new-game" onClick={reset}>New game <span>↗</span></button><button className="chess-undo" disabled={!records.length} onClick={undo}>↶ <span>Undo move</span></button><button className="chess-undo" onClick={() => setFlipped(not flipped)}>⇅ <span>Flip board</span></button></div>
+        <div className="chess-promotion"><small>PROMOTION PIECE</small><div>{['Q','R','B','N'].map(piece => <button key={piece} className={promotion == piece ? 'chosen' : ''} aria-label={`Promote to ${piece == 'Q' ? 'queen' : piece == 'R' ? 'rook' : piece == 'B' ? 'bishop' : 'knight'}`} aria-pressed={promotion == piece} onClick={() => setPromotion(piece)}>{promotionGlyph[piece]}</button>)}</div></div>
+        <div className="chess-moves"><div className="chess-section-title"><strong>Moves</strong><span>{records.length} ply</span></div>{records.length ? <ol>{records.map((record, i) => <li key={i} className={i == records.length - 1 ? 'current' : ''}><span>{Math.floor(i / 2) + 1}{i % 2 == 0 ? '.' : '…'}</span><b>{record.san}</b></li>)}</ol> : <p className="chess-empty">Your opening move is waiting.</p>}</div>
+        <ChessAd />
+        <p className="chess-note">{mode == 'local' ? 'A quiet game, face to face. Pass the device after each move.' : 'Play White against a private on-device chess opponent. Your game stays here.'}</p>
+      </aside>
+    </section>
+    <footer className="chess-footer"><span>CLIKEY · A GAME FOR TWO</span><span>Take your time.</span></footer>
+  </main>
+}
