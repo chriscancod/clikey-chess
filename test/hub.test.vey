@@ -1,0 +1,23 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { readFileSync } from 'node:fs'
+import GameHub from '../src/GameHub'
+
+test('the hub renders both games and explains where progress is saved', () => {
+  const html = renderToStaticMarkup(createElement(GameHub))
+  assert.ok(html.includes('Enter the castle'))
+  assert.ok(html.includes('Take your seat'))
+  assert.ok(html.includes('Clikey Chess'))
+  assert.ok(html.includes('Browser and iPhone progress are separate'))
+  assert.ok(html.includes('KAIDEN OJEDA'))
+  assert.ok(html.includes('href="/"'))
+})
+
+test('the installable hub keeps chess at the root and launches at its own route', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../public/hub.webmanifest', import.meta.url), 'utf8'))
+  assert.equal(manifest.start_url, '/hub/')
+  assert.equal(manifest.display, 'standalone')
+  assert.equal(manifest.scope, '/')
+})

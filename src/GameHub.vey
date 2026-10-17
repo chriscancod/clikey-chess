@@ -1,0 +1,42 @@
+import { useEffect, useState } from 'react'
+import Chess from './Chess'
+import ChessAd from './ChessAd'
+import './hub.vey'
+
+export default fn GameHub() {
+  const [active, setActive] = useState('home')
+  const [ready, setReady] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  useEffect(() => { document.title = 'Games · Clikey' }, [active])
+  const enter = (game: string) => { setActive(game); setReady(false); setFailed(false); setConfirmLeave(false) }
+  const leave = () => { setActive('home'); setExpanded(false); setConfirmLeave(false) }
+  const expand = async () => {
+    try {
+      if document.fullscreenElement { await document.exitFullscreen() }
+      else { await document.documentElement.requestFullscreen() }
+      setExpanded(Boolean(document.fullscreenElement))
+    } catch { setExpanded(false) }
+  }
+  return <div className={`game-hub ${active != 'home' ? 'hub-playing' : ''}`}>
+    <header className="hub-bar"><a className="hub-brand" href="/hub">clikey<span> / games</span></a><span className="hub-note">A LITTLE PLACE TO PLAY</span><a href="/">Chess home ↗</a></header>
+    {active == 'home' ? <main className="hub-home">
+      <div className="hub-heading"><span className="hub-eyebrow">THE CLIKEY COLLECTION</span><h1>Make time<br />for <em>one more.</em></h1><p>A quiet game of chess. A climb through a cursed castle.<br />Pick your kind of adventure.</p></div>
+      <section className="hub-games" aria-label="Choose a game">
+        <article className="hub-card castle-card"><div className="hub-art castle-art" aria-hidden="true"><div className="hub-moon" /><div className="hub-tower t1" /><div className="hub-tower t2" /><div className="hub-tower t3" /><span className="hub-sword">⚔</span><span className="hub-art-caption">ASHEN KEEP AWAITS</span></div><div className="hub-card-body"><span className="hub-eyebrow">ARCADE · ROGUELITE</span><h2>ONE MORE FLOOR</h2><p>Break the curse. Earn credits as you climb, unlock heroes, and make your knight your own.</p><div className="hub-tags"><span>WASD + Space</span><span>Saved on this browser</span></div><button className="hub-play" onClick={() => enter('castle')}>Enter the castle <span>↗</span></button></div></article>
+        <article className="hub-card chess-card"><div className="hub-art chess-art" aria-hidden="true"><div className="hub-mini-board">{[...Array(16).keys()].map(i => <span key={i} className={(Math.floor(i / 4) + i % 4) % 2 == 0 ? 'light' : 'dark'}>{i == 5 ? '♞' : i == 10 ? '♔' : ''}</span>)}</div><span className="hub-art-caption">YOUR NEXT MOVE</span></div><div className="hub-card-body"><span className="hub-eyebrow">STRATEGY · CLASSIC</span><h2>Clikey Chess</h2><p>Share a board with a friend or challenge the computer. No accounts. Just a good game.</p><div className="hub-tags"><span>Local multiplayer</span><span>Vs computer</span></div><button className="hub-play" onClick={() => enter('chess')}>Take your seat <span>↗</span></button></div></article>
+      </section>
+      <div className="hub-ad-placement"><ChessAd /></div>
+      <footer className="hub-footer"><p>ONE MORE FLOOR credits are earned in the castle and stay in that game. Browser and iPhone progress are separate.</p><span>COMPOSER · KAIDEN OJEDA</span></footer>
+    </main> : <main className={`hub-game-shell ${active == 'chess' ? 'hub-chess-shell' : ''}`}>
+      <nav className="hub-game-nav" aria-label="Game controls"><button onClick={() => setConfirmLeave(true)}>← Game hub</button><strong>{active == 'castle' ? 'ONE MORE FLOOR' : 'Clikey Chess'}</strong><button onClick={expand}>{expanded ? 'Exit full screen' : 'Full screen'}</button></nav>
+      {active == 'castle' ? <div className="hub-castle-stage">
+        {not ready ? <div className="hub-load" role="status">Opening the castle…</div> : null}
+        {failed ? <div className="hub-load" role="alert"><h2>The castle could not load.</h2><p>Check your connection and try opening the game directly.</p><a href="/one-more-floor/index.html">Open game ↗</a><button onClick={leave}>Back to hub</button></div> : <iframe title="ONE MORE FLOOR — Ashen Keep" src="/one-more-floor/index.html" allow="autoplay; fullscreen; gamepad" allowFullScreen onLoad={() => { setReady(true) }} onError={() => { setFailed(true); setReady(true) }} />}
+        <p className="hub-controls">WASD / arrows to move · Space to dash · Esc to pause · Shop & Customize from the title screen</p>
+      </div> : <Chess showAds={false} />}
+    </main>}
+    {confirmLeave ? <div className="hub-dialog-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="leave-title" className="hub-dialog"><h2 id="leave-title">Back to the hub?</h2><p>Your current run or chess match will end. Castle credits already earned and purchased items stay saved.</p><div><button autoFocus onClick={() => setConfirmLeave(false)}>Keep playing</button><button onClick={leave}>Leave game</button></div></section></div> : null}
+  </div>
+}

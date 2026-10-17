@@ -54,3 +54,16 @@ the public AdSense publisher and ad-unit IDs there, never secrets.
 Game logic, interface and styles are `.vey`. `lang/` contains the small Vey
 compiler/Vite adapter needed to build this repository; those compiler support
 files remain TypeScript because Node and Vite load them directly.
+
+## Clikey Games hub
+The existing chess page stays at `/`. Open `/hub/` for ONE MORE FLOOR and chess side-by-side in the collection. The new hub interface is written in `.vey`, using this project's existing Vey/React toolchain.
+
+To include ONE MORE FLOOR, build the sibling Godot project's **Web** preset, then run `python3 tools/publish_web_to_hub.py` in that project. It places the generated game in this project's `public/one-more-floor/` directory. `npm run build` then bundles the hub and copies the browser game into `dist/`. Publish that built directory; a fresh checkout needs the game export before building. The `/hub/index.html` entry is generated as a real page, so `/hub/` works without a catch-all route.
+
+`/hub.webmanifest` lets supporting browsers offer an installed window. This does not add offline support. Website navigation connects the two games, but accounts, currency and saves are not shared. The native iPhone version has its own hub menu linking to clikey.store. No website deployment is performed by the copy/build commands.
+
+
+## Production Pages deployment
+GitHub Pages publishes the `main` branch using `.github/workflows/pages.yml`. Keep `CNAME` set to `clikey.store`. The packaged Godot Web files in `public/one-more-floor/` are included in production so CI does not need the sibling game repository. When the game changes, re-export it and run the copy tool before publishing. Never include `ads_release.cfg` in the website; native AdMob IDs cannot be used for AdSense.
+
+The hub has an AdSense display placement on its selection page; it is unmounted while a game is open. The publisher is configured through the existing `VITE_ADSENSE_CLIENT_ID` repository variable. Set `VITE_ADSENSE_SLOT_ID` to your web display unit's numeric slot, then redeploy. When the slot is absent there is no fake banner or configuration message. The publisher script still supports site verification. Consent messages and serving approval are managed in AdSense Privacy & messaging; the website does not replace Google's certified CMP.
