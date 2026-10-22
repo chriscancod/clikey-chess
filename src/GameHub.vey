@@ -28,7 +28,7 @@ export default fn GameHub() {
         <article className="hub-card chess-card"><div className="hub-art chess-art" aria-hidden="true"><div className="hub-mini-board">{[...Array(16).keys()].map(i => <span key={i} className={(Math.floor(i / 4) + i % 4) % 2 == 0 ? 'light' : 'dark'}>{i == 5 ? '♞' : i == 10 ? '♔' : ''}</span>)}</div><span className="hub-art-caption">YOUR NEXT MOVE</span></div><div className="hub-card-body"><span className="hub-eyebrow">STRATEGY · CLASSIC</span><h2>Clikey Chess</h2><p>Share a board with a friend or challenge the computer. No accounts. Just a good game.</p><div className="hub-tags"><span>Local multiplayer</span><span>Vs computer</span></div><button className="hub-play" onClick={() => enter('chess')}>Take your seat <span>↗</span></button></div></article>
       </section>
       <div className="hub-ad-placement"><ChessAd /></div>
-      <footer className="hub-footer"><p>ONE MORE FLOOR credits are earned in the castle and stay in that game. Browser and iPhone progress are separate.</p><span>COMPOSER · KAIDEN OJEDA</span></footer>
+      <footer className="hub-footer"><p>ONE MORE FLOOR credits are earned in the castle and stay in that game. Browser and iPhone progress are separate.</p></footer>
     </main> : <main className={`hub-game-shell ${active == 'chess' ? 'hub-chess-shell' : ''}`}>
       <nav className="hub-game-nav" aria-label="Game controls"><button onClick={() => setConfirmLeave(true)}>← Game hub</button><strong>{active == 'castle' ? 'ONE MORE FLOOR' : 'Clikey Chess'}</strong><button onClick={expand}>{expanded ? 'Exit full screen' : 'Full screen'}</button></nav>
       {active == 'castle' ? <div className="hub-castle-stage">

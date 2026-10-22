@@ -11,7 +11,7 @@ test('the hub renders both games and explains where progress is saved', () => {
   assert.ok(html.includes('Take your seat'))
   assert.ok(html.includes('Clikey Chess'))
   assert.ok(html.includes('Browser and iPhone progress are separate'))
-  assert.ok(html.includes('KAIDEN OJEDA'))
+  assert.ok(!html.includes('COMPOSER'))
   assert.ok(html.includes('href="/"'))
 })
 
