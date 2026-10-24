@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import Chess from './Chess'
-import ChessAd from './ChessAd'
 import './hub.vey'
 
 export default fn GameHub() {
@@ -27,7 +26,6 @@ export default fn GameHub() {
         <article className="hub-card castle-card"><div className="hub-art castle-art" aria-hidden="true"><div className="hub-moon" /><div className="hub-tower t1" /><div className="hub-tower t2" /><div className="hub-tower t3" /><span className="hub-sword">⚔</span><span className="hub-art-caption">ASHEN KEEP AWAITS</span></div><div className="hub-card-body"><span className="hub-eyebrow">ARCADE · ROGUELITE</span><h2>ONE MORE FLOOR</h2><p>Break the curse. Earn credits as you climb, unlock heroes, and make your knight your own.</p><div className="hub-tags"><span>Keyboard · Touch · Controller</span><span>Saved on this browser</span></div><button className="hub-play" onClick={() => enter('castle')}>Enter the castle <span>↗</span></button></div></article>
         <article className="hub-card chess-card"><div className="hub-art chess-art" aria-hidden="true"><div className="hub-mini-board">{[...Array(16).keys()].map(i => <span key={i} className={(Math.floor(i / 4) + i % 4) % 2 == 0 ? 'light' : 'dark'}>{i == 5 ? '♞' : i == 10 ? '♔' : ''}</span>)}</div><span className="hub-art-caption">YOUR NEXT MOVE</span></div><div className="hub-card-body"><span className="hub-eyebrow">STRATEGY · CLASSIC</span><h2>Clikey Chess</h2><p>Share a board with a friend or challenge the computer. No accounts. Just a good game.</p><div className="hub-tags"><span>Local multiplayer</span><span>Vs computer</span></div><button className="hub-play" onClick={() => enter('chess')}>Take your seat <span>↗</span></button></div></article>
       </section>
-      <div className="hub-ad-placement"><ChessAd /></div>
       <footer className="hub-footer"><p>ONE MORE FLOOR credits are earned in the castle and stay in that game. Browser and iPhone progress are separate.</p></footer>
     </main> : <main className={`hub-game-shell ${active == 'chess' ? 'hub-chess-shell' : ''}`}>
       <nav className="hub-game-nav" aria-label="Game controls"><button onClick={() => setConfirmLeave(true)}>← Game hub</button><strong>{active == 'castle' ? 'ONE MORE FLOOR' : 'Clikey Chess'}</strong><button onClick={expand}>{expanded ? 'Exit full screen' : 'Full screen'}</button></nav>

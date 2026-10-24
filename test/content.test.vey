@@ -1,0 +1,35 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { renderToString } from 'react-dom/server'
+import { createElement } from 'react'
+import { readFileSync } from 'node:fs'
+import SiteApp, { pages } from '../src/SiteContent'
+import ChessAd from '../src/ChessAd'
+
+test('every route has publisher content, real navigation and no ad markup', () => {
+  for (const page of pages) {
+    const html = renderToString(createElement(SiteApp, { path: page.path }))
+    assert.ok(html.includes('Privacy &amp; storage'), page.path)
+    assert.ok(html.includes('Help &amp; contact'), page.path)
+    assert.doesNotMatch(html, /adsbygoogle|googlesyndication|SPONSORED/)
+    assert.ok(html.includes('<h1>'), page.path)
+  }
+})
+test('guides describe implementation-specific controls and tradeoffs', () => {
+  const chess = renderToString(createElement(SiteApp, { path: '/guides/chess/' }))
+  for (const term of ['En passant', 'Undo move', 'promotion', 'page refresh', 'e2 to e4']) assert.ok(chess.includes(term), term)
+  const castle = renderToString(createElement(SiteApp, { path: '/guides/one-more-floor/' }))
+  for (const term of ['BANK or RISK', 'ammunition', 'floor thirty', 'Browser and native phone progress are separate']) assert.ok(castle.includes(term), term)
+})
+test('ad adapter stays disabled even with production publisher configuration', () => {
+  assert.equal(renderToString(createElement(ChessAd)), '')
+  const source = readFileSync(new URL('../src/ChessAd.vey', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /useEffect|createElement|appendChild|adsbygoogle|googlesyndication/)
+  for (const name of ['Chess', 'GameHub']) assert.ok(!readFileSync(new URL(`../src/${name}.vey`, import.meta.url), 'utf8').includes('ChessAd'))
+})
+test('unknown routes show a recovery link without advertising', () => {
+  const html = renderToString(createElement(SiteApp, { path: '/missing/' }))
+  assert.ok(html.includes('Page not found'))
+  assert.ok(html.includes('Return to chess'))
+  assert.doesNotMatch(html, /adsbygoogle|googlesyndication/)
+})

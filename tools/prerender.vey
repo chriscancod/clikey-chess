@@ -1,0 +1,23 @@
+// Build adapter: render the same React/Vey view for browsers and crawlers.
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { renderToString } from 'react-dom/server'
+import { createElement } from 'react'
+import SiteApp, { pages } from '../src/SiteContent'
+const template = readFileSync('dist/index.html', 'utf8')
+const publisher = process.env.VITE_ADSENSE_CLIENT_ID ?? ''
+const verification = /^ca-pub-\d{16}$/.test(publisher) ? `<meta name="google-adsense-account" content="${publisher}" />` : ''
+const hubTemplate = readFileSync('dist/hub/index.html', 'utf8')
+for (const page of pages) {
+  const dir = page.path == '/' ? 'dist' : `dist${page.path.slice(0, -1)}`
+  mkdirSync(dir, { recursive: true })
+  const body = renderToString(createElement(SiteApp, { path: page.path }))
+  const html = (page.path == '/hub/' ? hubTemplate : template).replace(/<title>.*?<\/title>/, `<title>${page.title}</title>`)
+    .replace(/<meta name="description" content="[^"]*"\s*\/>/, `<meta name="description" content="${page.description}" />`)
+    .replace('<div id="root"></div>', `<div id="root">${body}</div>`)
+    .replace('</head>', `<link rel="canonical" href="https://clikey.store${page.path}" />${verification}</head>`)
+  writeFileSync(`${dir}/index.html`, html)
+}
+writeFileSync('dist/404.html', template.replace('<div id="root"></div>', `<div id="root">${renderToString(createElement(SiteApp, { path: '/missing/' }))}</div>`).replace('<head>', '<head><meta name="robots" content="noindex" />'))
+writeFileSync('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${pages.map(p => `<url><loc>https://clikey.store${p.path}</loc></url>`).join('')}</urlset>`)
+writeFileSync('dist/robots.txt', 'User-agent: *\nAllow: /\nSitemap: https://clikey.store/sitemap.xml\n')
+console.log(`Prerendered ${pages.length} routes and an ad-free 404; sitemap generated.`)

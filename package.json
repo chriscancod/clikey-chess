@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node --experimental-strip-types --no-warnings --import ./lang/register.ts tools/prerender.vey && node tools/verify-build.mjs",
     "test": "node --experimental-strip-types --no-warnings --import ./lang/register.ts --test test/*.test.vey"
   },
   "dependencies": {

@@ -79,10 +79,6 @@ button { border: 0; font: inherit; cursor: pointer; -webkit-tap-highlight-color:
 .chess-empty, .chess-note { color: var(--chess-muted); font-size: 10px; line-height: 1.65; }
 .chess-empty { padding: 14px 0; }
 .chess-note { margin-top: 19px; }
-.chess-ad { margin-top: 17px; min-height: 72px; display: grid; align-content: center; gap: 7px; padding: 12px 13px; border: 1px dashed #c9c7bd; border-radius: 8px; color: var(--chess-muted); }
-.chess-ad-label { font-size: 8px; font-weight: 750; letter-spacing: .16em; }
-.chess-ad p { font-size: 10px; line-height: 1.5; }
-.chess-ad ins { min-height: 50px; }
 .chess-footer { min-height: 47px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 clamp(20px,5vw,70px); border-top: 1px solid rgba(40,52,45,.12); color: var(--chess-muted); font-size: 8px; letter-spacing: .11em; }
 .chess-footer span:last-child { letter-spacing: .01em; }
 .chess-page :focus-visible { outline: 3px solid #4e8065; outline-offset: 2px; }

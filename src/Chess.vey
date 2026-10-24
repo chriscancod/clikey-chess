@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { applyMove, chessStatus, chooseComputerMove, legalMoves, pieceGlyph, sanForMove, squareName, startPosition, type ChessMove, type ChessPosition, type ChessRecord } from './engine'
-import ChessAd from './ChessAd'
 
 const promotionGlyph: Record<string, string> = { Q: '♕', R: '♖', B: '♗', N: '♘' }
 export default fn Chess(props: { showAds?: boolean } = {}) {
@@ -76,7 +75,6 @@ export default fn Chess(props: { showAds?: boolean } = {}) {
         <div className="chess-controls"><button className="chess-new-game" onClick={reset}>New game <span>↗</span></button><button className="chess-undo" disabled={!records.length} onClick={undo}>↶ <span>Undo move</span></button><button className="chess-undo" onClick={() => setFlipped(not flipped)}>⇅ <span>Flip board</span></button></div>
         <div className="chess-promotion"><small>PROMOTION PIECE</small><div>{['Q','R','B','N'].map(piece => <button key={piece} className={promotion == piece ? 'chosen' : ''} aria-label={`Promote to ${piece == 'Q' ? 'queen' : piece == 'R' ? 'rook' : piece == 'B' ? 'bishop' : 'knight'}`} aria-pressed={promotion == piece} onClick={() => setPromotion(piece)}>{promotionGlyph[piece]}</button>)}</div></div>
         <div className="chess-moves"><div className="chess-section-title"><strong>Moves</strong><span>{records.length} ply</span></div>{records.length ? <ol>{records.map((record, i) => <li key={i} className={i == records.length - 1 ? 'current' : ''}><span>{Math.floor(i / 2) + 1}{i % 2 == 0 ? '.' : '…'}</span><b>{record.san}</b></li>)}</ol> : <p className="chess-empty">Your opening move is waiting.</p>}</div>
-        {props.showAds == false ? null : <ChessAd />}
         <p className="chess-note">{mode == 'local' ? 'A quiet game, face to face. Pass the device after each move.' : `You play ${playerColor == 'w' ? 'White' : 'Black'} against a stronger private on-device opponent. Your game stays here.`}</p>
       </aside>
     </section>
